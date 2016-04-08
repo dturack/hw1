@@ -1,4 +1,4 @@
-//cs335 Spring 2015 Lab-1
+//cs335 Spring 2015 HW-1
 //This program demonstrates the use of OpenGL and XWindows
 //
 //Assignment is to modify this program.
