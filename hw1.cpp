@@ -35,6 +35,9 @@
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <GL/glx.h>
+extern "C" {
+    #include "fonts.h"
+}
 
 #define WINDOW_WIDTH  800
 #define WINDOW_HEIGHT 600
@@ -175,6 +178,9 @@ void init_opengl(void)
 	glOrtho(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT, -1, 1);
 	//Set the screen background color
 	glClearColor(0.0, 0.0, 0.3, 1.0);
+    //allow fonts
+    glEnable(GL_TEXTURE_2D);
+    initialize_fonts();
 }
 
 void makeParticle(Game *game, int x, int y) {
@@ -352,6 +358,21 @@ void render(Game *game)
 		glEnd();
 		glPopMatrix();
 	}
+
+    //add text
+    Rect r;
+    glClear(CL_COLOR_BUFFER_BIT);
+    r.bot = yres - 20;
+    r.left = 10;
+    r.center = 0;
+    ggprint8b(&r, 16, 0, "Waterfall Model");
+    r.bot = &game->box[0]->center.y - 10;
+    r.left = &game->box[0]->center.x - 100;
+    ggprint8b(&r, 16, 0x00ff0000, "Requirements");
+    ggprint8b(&r, 16, 0x00ff0000, "Design");
+    ggprint8b(&r, 16, 0x00ff0000, "Coding");
+    ggprint8b(&r, 16, 0x00ff0000, "Testing");
+    ggprint8b(&r, 16, 0x00ff0000, "Maintenance");
 }
 
 
