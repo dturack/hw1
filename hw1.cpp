@@ -35,9 +35,9 @@
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <GL/glx.h>
-extern "C" {
+/*extern "C" {
     #include "fonts.h"
-}
+}*/
 
 #define WINDOW_WIDTH  800
 #define WINDOW_HEIGHT 600
@@ -101,13 +101,13 @@ int main(void)
 	for(int i=0; i<5; i++){
         game.box[i].width = 100;
 	    game.box[i].height = 10;
-	    game.box[i].center.x = 120 + 5*65 + (i*15);
-	    game.box[i].center.y = 500 - 5*60 + (i*10);
+	    game.box[i].center.x = 120 + 5*65 - (i*100);
+	    game.box[i].center.y = 500 - 5*60 + (i*50);
     }
 
     game.sphere.radius = 100;
-	game.sphere.center.x = 80 + 5*65;
-	game.sphere.center.y = 600 - 5*60;
+	game.sphere.center.x = 300 + 5*65;
+	game.sphere.center.y = 300 - 5*60;
 
 	//start animation
 	while(!done) {
@@ -179,8 +179,8 @@ void init_opengl(void)
 	//Set the screen background color
 	glClearColor(0.0, 0.0, 0.3, 1.0);
     //allow fonts
-    glEnable(GL_TEXTURE_2D);
-    initialize_fonts();
+    //glEnable(GL_TEXTURE_2D);
+    //initialize_fonts();
 }
 
 void makeParticle(Game *game, int x, int y) {
@@ -202,6 +202,11 @@ void check_mouse(XEvent *e, Game *game)
 	static int savex = 0;
 	static int savey = 0;
 	static int n = 0;
+
+	/*if (bub) {
+	    int y = WINDOW_HEIGHT - e->xbutton.y;
+	    makeParticle(game, e->xbutton.x, y);
+	}*/
 
 	if (e->type == ButtonRelease) {
 		return;
@@ -237,13 +242,13 @@ int check_keys(XEvent *e, Game *game)
 		if (key == XK_Escape) {
 			return 1;
 		}
-        if (key == XK_B) {
+        if (key == XK_b) {
             //turn bubbler on or off
-            bub =^ 1;
-            while(bub){
+            bub ^= 1;
+            /*while(bub){
                 makeParticle(game, 100, 20);
                 usleep(100000);
-            }
+            }*/
         }
 		//You may check other keys here.
 
@@ -253,6 +258,9 @@ int check_keys(XEvent *e, Game *game)
 
 void movement(Game *game)
 {
+    if (bub) {
+	makeParticle(game, 100, 400);
+    }
 	Particle *p;
 
 	if (game->n <= 0)
@@ -265,9 +273,9 @@ void movement(Game *game)
 		p->velocity.y -= 0.2;
 
 		//check for collision with shapes...
-		for(int i=0; i<5; i++) {
-            Shape *s;
-    		s = &game->box[i];
+		for(int k=0; k<5; k++) {
+		    Shape *s;
+		    s = &game->box[k];
 
 		    if (p->s.center.y >= s->center.y - (s->height) &&
 	       	    	p->s.center.y <= s->center.y + (s->height) &&
@@ -276,10 +284,10 @@ void movement(Game *game)
 			    p->velocity.y *= -0.5;
 			    //p->velocity.x += 0.5;
 		    }
-        }
+		}
 
-        Shape *d;
-        d = &game->sphere;
+		Shape *d;
+		d = &game->sphere;
 		if (p->s.center.y >= d->center.y - (d->radius) &&
 			p->s.center.y <= d->center.y + (d->radius) &&
 			p->s.center.x >= d->center.x - (d->radius) &&
@@ -300,12 +308,12 @@ void movement(Game *game)
 
 void render(Game *game)
 {
-	float w, h;
-	glClear(GL_COLOR_BUFFER_BIT);
-	//Draw shapes...
+    float w, h;
+    glClear(GL_COLOR_BUFFER_BIT);
+    //Draw shapes...
 
-	//draw box
-	for(int i=0; i<5; i++) {
+    //draw box
+	for (int i=0; i<5; i++) {
         Shape *s;
 	    glColor3ub(50,140,50);
 	    s = &game->box[i];
@@ -320,13 +328,13 @@ void render(Game *game)
 		    glVertex2i( w,-h);
 	    glEnd();
 	    glPopMatrix();
-    }
+    	}
 
 	Shape *d;
 	glColor3ub(140, 50, 50);
 	d = &game->sphere;
 	glPushMatrix();
-	glTranslatef(d->center.x, d->center.y, d->center.z);
+	//glTranslatef(d->center.x, d->center.y, d->center.z);
 	float x, y;
     float radius = d->radius;
 	float twicePi = 2.0 * 3.142;
@@ -360,7 +368,7 @@ void render(Game *game)
 	}
 
     //add text
-    Rect r;
+    /*Rect r;
     glClear(CL_COLOR_BUFFER_BIT);
     r.bot = yres - 20;
     r.left = 10;
@@ -372,7 +380,7 @@ void render(Game *game)
     ggprint8b(&r, 16, 0x00ff0000, "Design");
     ggprint8b(&r, 16, 0x00ff0000, "Coding");
     ggprint8b(&r, 16, 0x00ff0000, "Testing");
-    ggprint8b(&r, 16, 0x00ff0000, "Maintenance");
+    ggprint8b(&r, 16, 0x00ff0000, "Maintenance");*/
 }
 
 
