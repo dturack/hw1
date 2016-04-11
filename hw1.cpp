@@ -31,6 +31,7 @@
 #include <ctime>
 #include <cstring>
 #include <cmath>
+#include <unistd.h>
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <GL/glx.h>
@@ -39,6 +40,7 @@
 #define WINDOW_HEIGHT 600
 
 #define MAX_PARTICLES 500
+#define MAX_BOXES 10
 #define GRAVITY 0.1
 
 //X Windows variables
@@ -64,11 +66,13 @@ struct Particle {
 };
 
 struct Game {
-	Shape box;
-	Shape box1;
+	Shape box[MAX_BOXES];
+    Shape sphere;
 	Particle particle[MAX_PARTICLES];
 	int n;
 };
+
+int bub = 0;
 
 //Function prototypes
 void initXWindows(void);
@@ -91,15 +95,16 @@ int main(void)
 	game.n=0;
 
 	//declare a box shape
-	game.box.width = 100;
-	game.box.height = 10;
-	game.box.center.x = 120 + 5*65;
-	game.box.center.y = 500 - 5*60;
+	for(int i=0; i<5; i++){
+        game.box[i].width = 100;
+	    game.box[i].height = 10;
+	    game.box[i].center.x = 120 + 5*65 + (i*15);
+	    game.box[i].center.y = 500 - 5*60 + (i*10);
+    }
 
-	game.box1.width = 100;
-	game.box1.height = 10;
-	game.box1.center.x = -80 + 5*65;
-	game.box1.center.y = 500 - 5*60;
+    game.sphere.radius = 100;
+	game.sphere.center.x = 80 + 5*65;
+	game.sphere.center.y = 600 - 5*60;
 
 	//start animation
 	while(!done) {
@@ -121,7 +126,7 @@ void set_title(void)
 {
 	//Set the window title bar.
 	XMapWindow(dpy, win);
-	XStoreName(dpy, win, "335 Lab1   LMB for particle");
+	XStoreName(dpy, win, "335 Lab1   LMB for particle   B = turn on water");
 }
 
 void cleanupXWindows(void) {
@@ -181,7 +186,7 @@ void makeParticle(Game *game, int x, int y) {
 	p->s.center.x = x;
 	p->s.center.y = y;
 	p->velocity.y = -4.0;
-	p->velocity.x = 0.01;
+	p->velocity.x = 0.5;
 	//p->velocity.x =  game->n/10 + 1;
 	game->n++;
 }
@@ -226,6 +231,14 @@ int check_keys(XEvent *e, Game *game)
 		if (key == XK_Escape) {
 			return 1;
 		}
+        if (key == XK_B) {
+            //turn bubbler on or off
+            bub =^ 1;
+            while(bub){
+                makeParticle(game, 100, 20);
+                usleep(100000);
+            }
+        }
 		//You may check other keys here.
 
 	}
@@ -246,26 +259,27 @@ void movement(Game *game)
 		p->velocity.y -= 0.2;
 
 		//check for collision with shapes...
-		Shape *s;
-		s = &game->box;
+		for(int i=0; i<5; i++) {
+            Shape *s;
+    		s = &game->box[i];
 
-		Shape *d;
-		d = &game->box1;
+		    if (p->s.center.y >= s->center.y - (s->height) &&
+	       	    	p->s.center.y <= s->center.y + (s->height) &&
+			    p->s.center.x >= s->center.x - (s->width) &&
+			    p->s.center.x <= s->center.x + (s->width)){
+			    p->velocity.y *= -0.5;
+			    //p->velocity.x += 0.5;
+		    }
+        }
 
-		if (p->s.center.y >= s->center.y - (s->height) &&
-	       		p->s.center.y <= s->center.y + (s->height) &&
-			p->s.center.x >= s->center.x - (s->width) &&
-			p->s.center.x <= s->center.x + (s->width)){
-			p->velocity.y *= -0.5;
-			p->velocity.x += 0.5;
-		}
-
-		if (p->s.center.y >= d->center.y - (d->height) &&
-			p->s.center.y <= d->center.y + (d->height) &&
-			p->s.center.x >= d->center.x - (d->width) &&
-			p->s.center.x <= d->center.x + (d->width)){
+        Shape *d;
+        d = &game->sphere;
+		if (p->s.center.y >= d->center.y - (d->radius) &&
+			p->s.center.y <= d->center.y + (d->radius) &&
+			p->s.center.x >= d->center.x - (d->radius) &&
+			p->s.center.x <= d->center.x + (d->radius)){
 		    p->velocity.y *= -0.5;
-		    p->velocity.x -= 0.5;
+		    //p->velocity.x += 0.5;
 		}
 
 		//check for off-screen
@@ -274,6 +288,7 @@ void movement(Game *game)
 			game->particle[i] = game->particle[game->n-1];
 			game->n--;
 		}
+
 	}
 }
 
@@ -284,33 +299,40 @@ void render(Game *game)
 	//Draw shapes...
 
 	//draw box
-	Shape *s;
-	glColor3ub(50,140,50);
-	s = &game->box;
-	glPushMatrix();
-	glTranslatef(s->center.x, s->center.y, s->center.z);
-	w = s->width;
-	h = s->height;
-	glBegin(GL_QUADS);
-		glVertex2i(-w,-h);
-		glVertex2i(-w, h);
-		glVertex2i( w, h);
-		glVertex2i( w,-h);
-	glEnd();
-	glPopMatrix();
+	for(int i=0; i<5; i++) {
+        Shape *s;
+	    glColor3ub(50,140,50);
+	    s = &game->box[i];
+	    glPushMatrix();
+	    glTranslatef(s->center.x, s->center.y, s->center.z);
+	    w = s->width;
+	    h = s->height;
+	    glBegin(GL_QUADS);
+		    glVertex2i(-w,-h);
+		    glVertex2i(-w, h);
+		    glVertex2i( w, h);
+		    glVertex2i( w,-h);
+	    glEnd();
+	    glPopMatrix();
+    }
 
 	Shape *d;
 	glColor3ub(140, 50, 50);
-	d = &game->box1;
+	d = &game->sphere;
 	glPushMatrix();
 	glTranslatef(d->center.x, d->center.y, d->center.z);
-	w = d->width;
-	h = d->height;
-	glBegin(GL_QUADS);
-		glVertex2i(-w,-h);
-		glVertex2i(-w, h);
-		glVertex2i( w, h);
-		glVertex2i( w,-h);
+	float x, y;
+    float radius = d->radius;
+	float twicePi = 2.0 * 3.142;
+    x = d->center.x;
+    y = d->center.y;
+	glBegin(GL_TRIANGLE_FAN);
+    glVertex2f(x, y);
+    for(int i=0; i<=20; i++) {
+        glVertex2f (
+                (x + (radius * cos(i *twicePi / 20))), (y + (radius * sin(i * twicePi / 20)))
+                );
+    }
 	glEnd();
 	glPopMatrix();
 
