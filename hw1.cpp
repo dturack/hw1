@@ -42,7 +42,7 @@
 #define WINDOW_WIDTH  800
 #define WINDOW_HEIGHT 600
 
-#define MAX_PARTICLES 500
+#define MAX_PARTICLES 1000
 #define MAX_BOXES 10
 #define GRAVITY 0.1
 
@@ -75,7 +75,7 @@ struct Game {
 	int n;
 };
 
-int bub = 0;
+int bub, bubh = 0;
 
 //Function prototypes
 void initXWindows(void);
@@ -101,12 +101,12 @@ int main(void)
 	for(int i=0; i<5; i++){
         game.box[i].width = 100;
 	    game.box[i].height = 10;
-	    game.box[i].center.x = 120 + 5*65 - (i*100);
-	    game.box[i].center.y = 500 - 5*60 + (i*50);
+	    game.box[i].center.x = 180 + 5*65 - (i*100);
+	    game.box[i].center.y = 570 - 5*60 + (i*50);
     }
 
     game.sphere.radius = 100;
-	game.sphere.center.x = 300 + 5*65;
+	game.sphere.center.x = 360 + 5*65;
 	game.sphere.center.y = 300 - 5*60;
 
 	//start animation
@@ -129,7 +129,7 @@ void set_title(void)
 {
 	//Set the window title bar.
 	XMapWindow(dpy, win);
-	XStoreName(dpy, win, "335 Lab1   LMB for particle   B = turn on water");
+	XStoreName(dpy, win, "335 HW1   LMB for particle   B = turn on water");
 }
 
 void cleanupXWindows(void) {
@@ -191,9 +191,9 @@ void makeParticle(Game *game, int x, int y) {
 	Particle *p = &game->particle[game->n];
 	p->s.center.x = x;
 	p->s.center.y = y;
-	p->velocity.y = -4.0;
+	//p->velocity.y = -4.0;
 	p->velocity.x = 0.5;
-	//p->velocity.x =  game->n/10 + 1;
+	p->velocity.y =  game->n%10 - 4.0;
 	game->n++;
 }
 
@@ -202,11 +202,6 @@ void check_mouse(XEvent *e, Game *game)
 	static int savex = 0;
 	static int savey = 0;
 	static int n = 0;
-
-	/*if (bub) {
-	    int y = WINDOW_HEIGHT - e->xbutton.y;
-	    makeParticle(game, e->xbutton.x, y);
-	}*/
 
 	if (e->type == ButtonRelease) {
 		return;
@@ -229,8 +224,8 @@ void check_mouse(XEvent *e, Game *game)
 		savey = e->xbutton.y;
 		if (++n < 10)
 		    return;
-		int y = WINDOW_HEIGHT - e->xbutton.y;
-		makeParticle(game, e->xbutton.x, y);
+		//int y = WINDOW_HEIGHT - e->xbutton.y;
+		//makeParticle(game, e->xbutton.x, y);
 	}
 }
 
@@ -245,11 +240,7 @@ int check_keys(XEvent *e, Game *game)
         if (key == XK_b) {
             //turn bubbler on or off
             bub ^= 1;
-            /*while(bub){
-                makeParticle(game, 100, 20);
-                usleep(100000);
-            }*/
-        }
+	}
 		//You may check other keys here.
 
 	}
@@ -259,14 +250,19 @@ int check_keys(XEvent *e, Game *game)
 void movement(Game *game)
 {
     if (bub) {
-	makeParticle(game, 100, 400);
+	if (bubh) {
+	    bubh ^= 1;
+    	    makeParticle(game, 50, 550);
+	}
+	else
+	    bubh ^= 1;
     }
 	Particle *p;
 
 	if (game->n <= 0)
 		return;
 
-	for(int i =0; i<game->n; i++){
+	for (int i =0; i<game->n; i++) {
 		p = &game->particle[i];
 		p->s.center.x += p->velocity.x;
 		p->s.center.y += p->velocity.y;
@@ -281,24 +277,27 @@ void movement(Game *game)
 	       	    	p->s.center.y <= s->center.y + (s->height) &&
 			    p->s.center.x >= s->center.x - (s->width) &&
 			    p->s.center.x <= s->center.x + (s->width)){
-			    p->velocity.y *= -0.5;
-			    //p->velocity.x += 0.5;
+			    p->velocity.y *= -0.90;
+			    p->velocity.x += k*0.01;
 		    }
 		}
 
 		Shape *d;
 		d = &game->sphere;
-		if (p->s.center.y >= d->center.y - (d->radius) &&
-			p->s.center.y <= d->center.y + (d->radius) &&
-			p->s.center.x >= d->center.x - (d->radius) &&
-			p->s.center.x <= d->center.x + (d->radius)){
-		    p->velocity.y *= -0.5;
-		    //p->velocity.x += 0.5;
+		float y1 = p->s.center.y - d->center.y;
+		float x1 = p->s.center.x - d->center.x;
+		float dist = sqrt((y1*y1)+(x1*x1));
+		if (dist < d->radius){
+		    p->velocity.y *= -0.8;
+		    //p->velocity.y += -0.5;
+		    if (p->s.center.x <= d->center.x) {
+		    	p->velocity.x -= 0.5;
+		    }
 		}
 
 		//check for off-screen
 		if (p->s.center.y < 0.0) {
-			std::cout << "off screen" << std::endl;
+			//std::cout << "off screen" << std::endl;
 			game->particle[i] = game->particle[game->n-1];
 			game->n--;
 		}
@@ -353,8 +352,9 @@ void render(Game *game)
 
 	//draw all particles here
 	glPushMatrix();
-	glColor3ub(100,100,250);
+	//glColor3ub(100,100,250);
 	for (int i=0; i<game->n; i++) {
+	    glColor3ub(100,100,(250-(i%50))); 
 		Vec *c = &game->particle[i].s.center;
 		w = 3;
 		h = 3;
